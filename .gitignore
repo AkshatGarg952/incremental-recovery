@@ -1,0 +1,36 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Data and databases
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/
+batches/
+cache/
+
+# Node (unused after the React cut, kept for safety)
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local planning docs — not part of the submission
+docs/
