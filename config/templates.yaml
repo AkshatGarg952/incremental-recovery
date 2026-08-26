@@ -1,0 +1,34 @@
+# Fixed template catalogue. The policy agent picks a template_id from here; it never
+# authors customer-facing copy at runtime. That is how the system avoids a model
+# sending something regulated and wrong — see BUILD.md R3.
+
+templates:
+  - template_id: retry_reminder_sms
+    channel: sms
+    variables: [amount, merchant_name]
+    body: "Your payment of {amount} to {merchant_name} didn't go through. We'll retry automatically."
+
+  - template_id: retry_reminder_email
+    channel: email
+    variables: [amount, merchant_name, due_date]
+    body: "Payment reminder: {amount} to {merchant_name} is due {due_date}. We'll retry automatically."
+
+  - template_id: action_required_sms
+    channel: sms
+    variables: [amount, merchant_name]
+    body: "Action needed: your payment of {amount} to {merchant_name} failed. Please update your payment method."
+
+  - template_id: action_required_whatsapp
+    channel: whatsapp
+    variables: [amount, merchant_name]
+    body: "Hi, your payment of {amount} to {merchant_name} couldn't be completed. Tap to update your payment details."
+
+  - template_id: action_required_in_app
+    channel: in_app
+    variables: [amount, merchant_name]
+    body: "Update your payment method to keep your {merchant_name} subscription active."
+
+  - template_id: final_notice_email
+    channel: email
+    variables: [amount, merchant_name, grace_days]
+    body: "Final notice: {amount} to {merchant_name} remains unpaid. You have {grace_days} days before service is paused."

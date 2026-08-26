@@ -1,0 +1,58 @@
+# Deterministic policy envelope — the safety layer, not the LLM.
+#
+# Every number below is this project's best reading of public guidance (RBI e-mandate
+# circulars, TRAI commercial-communication rules) for a hackathon prototype. This is
+# NOT legal advice and none of it has been reviewed by counsel — see README for the
+# disclaimer. Real production caps come from NPCI/scheme rules and merchant agreements.
+
+retry_cap:
+  # RBI's e-mandate framework caps retry attempts per mandate within a rolling window;
+  # we use a conservative in-house ceiling well under typical scheme limits.
+  max_attempts_per_mandate: 4
+  window_hours: 168 # 7 days
+
+quiet_hours:
+  # TRAI restricts commercial communication outside 09:00-21:00 IST for senders
+  # without prior consent; we block outbound customer contact outside this window on
+  # every channel, no exceptions.
+  start_ist: "21:00"
+  end_ist: "09:00"
+
+contact_frequency:
+  # In-house restraint cap, not a regulatory number — chosen to bound total contacts
+  # across sms/email/whatsapp/in_app combined per customer.
+  max_contacts_per_7d: 3
+
+channel_consent:
+  # The actual consent set lives per-customer on FailureContext; this just names the
+  # channel set the rule is allowed to check against.
+  enforced_channels: [sms, email, whatsapp, in_app]
+
+template_allowlist:
+  # template_id must exist in config/templates.yaml — the LLM never authors
+  # customer-facing copy at runtime.
+  source: config/templates.yaml
+
+amount_bound:
+  # Retry amount must equal the original authorization exactly — no partial or bumped
+  # retries, ever.
+  allow_amount_delta_paise: 0
+
+dead_no_chase:
+  # DEAD class (mandate revoked, risk-blocked) gets zero intervention, no exceptions.
+  classes: [dead]
+
+schedule_sanity:
+  max_retry_steps: 4
+  max_horizon_hours: 168
+  require_monotonic_delays: true
+
+fatigue:
+  # Mirrors the simulator's fatigue_threshold so the envelope and the scoring function
+  # stay consistent with each other (see BUILD.md R6 — the restraint gate).
+  block_after_contacts_and_failures: 5
+
+schema_valid:
+  # Bounded retries against the ProposedPolicy schema before this rule fires and the
+  # arm falls back to baseline behaviour.
+  max_parse_retries: 2

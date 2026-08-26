@@ -1,0 +1,20 @@
+# Shadow cost table — committed list prices for tokens, used only to report a
+# hypothetical spend since the free tier means real cost is Rs 0. Approximate figures
+# from provider pricing pages, not machine-verified against a live billing API.
+# Update before quoting a real number to a merchant or a judge.
+
+usd_per_million_tokens:
+  gemini-2.5-flash-lite:
+    input: 0.10
+    output: 0.40
+  openai/gpt-oss-120b:
+    input: 0.10
+    output: 0.50
+  openai/gpt-oss-20b:
+    input: 0.05
+    output: 0.20
+  qwen/qwen3.6-27b:
+    input: 0.05
+    output: 0.20
+
+usd_to_inr: 88.0 # approximate FX rate, update before quoting a real number

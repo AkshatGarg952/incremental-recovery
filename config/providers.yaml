@@ -1,0 +1,18 @@
+# Both models verified against the live Gemini and Groq APIs on 26 Aug 2026.
+roles:
+  classify:
+    provider: gemini
+    model: gemini-2.5-flash-lite
+    temperature: 0.0
+
+  policy:
+    provider: groq
+    model: openai/gpt-oss-120b
+    temperature: 0.2
+    reasoning_effort: low # non-negotiable — see BUILD.md R9, the reasoning-token trap
+    response_format: json_object
+
+# No local fallback. If both providers are down, parsing fails, ENV_SCHEMA_VALID
+# blocks, every arm falls back to baseline behaviour, and the batch still reports.
+fallback_models:
+  policy: [openai/gpt-oss-20b, qwen/qwen3.6-27b]

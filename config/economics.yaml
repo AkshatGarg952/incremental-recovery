@@ -1,0 +1,20 @@
+# Contact cost per channel and the goodwill term the simulator also uses to degrade
+# outcomes, so the stopping rule (BUILD.md R7) and the scoring function stay
+# consistent with each other.
+
+contact_cost_paise:
+  # Rough per-message cost in INR paise. sms/whatsapp approximate typical CPaaS list
+  # pricing; email and in_app are treated as near-zero marginal cost. Not vetted
+  # against an actual vendor contract.
+  sms: 20
+  email: 2
+  whatsapp: 35
+  in_app: 1
+
+goodwill:
+  # Same churn_prob_per_excess_contact family the simulator's LatentOutcome uses —
+  # duplicated here only as the surface the stopping rule reads at decision time.
+  churn_cost_weight: 1.0
+
+mandate_retry_cap: 4 # mirrors config/envelope.yaml retry_cap.max_attempts_per_mandate
+decline_rate_penalty_threshold: 0.15
