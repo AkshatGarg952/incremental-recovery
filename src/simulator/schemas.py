@@ -40,6 +40,7 @@ class FailureContext(BaseModel):
     contacts_last_7d: int
     subscription_mrr_paise: int | None
     invoice_due_date: date | None
+    consent_channels: set[Literal["sms", "email", "whatsapp", "in_app"]]
 
 
 class PaymentFailure(BaseModel):

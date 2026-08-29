@@ -97,6 +97,7 @@ def generate_batch(
             contacts_last_7d=profile.contacts_last_7d,
             subscription_mrr_paise=subscription_mrr_paise,
             invoice_due_date=invoice_due_date,
+            consent_channels=set(profile.consent_channels),
         )
 
         failures.append(
