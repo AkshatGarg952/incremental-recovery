@@ -12,10 +12,10 @@ from src.simulator.schemas import LatentOutcome, RecoveryClass
 
 # Base self-recovery probability per class, holdout / zero-intervention.
 # Calibrated jointly with distributions.RECOVERY_CLASS_SHARE so the aggregate
-# self-recovery rate lands in the 15-25% plausibility band (R5) while
-# TIME - ACTION >= 30pp, the load-bearing spread assertion.
+# self-recovery rate lands comfortably inside the 15-25% plausibility band
+# (R5), not just on its edge, while TIME - ACTION >= 30pp holds with margin.
 _BASE_SELF_RECOVERY_RATE: dict[RecoveryClass, float] = {
-    RecoveryClass.TIME_RECOVERABLE: 0.55,
+    RecoveryClass.TIME_RECOVERABLE: 0.52,
     RecoveryClass.ROUTE_RECOVERABLE: 0.30,
     RecoveryClass.ACTION_RECOVERABLE: 0.10,
     RecoveryClass.DEAD: 0.01,

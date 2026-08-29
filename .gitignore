@@ -18,7 +18,9 @@ venv/
 *.db-shm
 *.sqlite
 *.sqlite3
-data/
+data/*
+!data/reference_batch.jsonl
+!data/DISTRIBUTION_SUMMARY.md
 batches/
 cache/
 

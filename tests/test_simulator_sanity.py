@@ -10,19 +10,15 @@ a flat bar.
 
 import random
 
+import pytest
+
 from src.simulator.distributions import RECOVERY_CLASS_SHARE, sample_recovery_class
 from src.simulator.latent import generate_latent_outcome
+from src.simulator.sanity_gate import BAND, SanityGateFailure, check_sanity_gate
 from src.simulator.schemas import RecoveryClass
 
 _N = 20_000
 _SEED = 20260901
-
-_BAND = {
-    RecoveryClass.TIME_RECOVERABLE: (48.0, 65.0),
-    RecoveryClass.ROUTE_RECOVERABLE: (25.0, 40.0),
-    RecoveryClass.ACTION_RECOVERABLE: (8.0, 18.0),
-    RecoveryClass.DEAD: (0.0, 3.0),
-}
 
 
 def _generate_population(n: int, seed: int) -> dict[RecoveryClass, list[bool]]:
@@ -41,7 +37,7 @@ def test_self_recovery_rate_is_plausible_and_class_ordered():
 
     rate_pct = {c: 100.0 * sum(vals) / len(vals) for c, vals in outcomes.items() if vals}
 
-    for recovery_class, (low, high) in _BAND.items():
+    for recovery_class, (low, high) in BAND.items():
         assert low <= rate_pct[recovery_class] <= high, (
             f"{recovery_class}: {rate_pct[recovery_class]:.1f}% outside band [{low}, {high}]"
         )
@@ -60,6 +56,10 @@ def test_self_recovery_rate_is_plausible_and_class_ordered():
     # And the result is plausible.
     assert 15.0 <= actual_aggregate <= 25.0
 
+    # The generator (task 2.8) wires this exact check in at generation time —
+    # the same population must pass it too.
+    check_sanity_gate(outcomes)
+
 
 def test_recovery_class_shares_are_stable_and_sum_to_one():
     assert abs(sum(RECOVERY_CLASS_SHARE.values()) - 1.0) < 1e-9
@@ -71,3 +71,10 @@ def test_generation_is_seed_deterministic():
     first = _generate_population(2_000, _SEED)
     second = _generate_population(2_000, _SEED)
     assert first == second
+
+
+def test_check_sanity_gate_rejects_a_population_with_no_class_signal():
+    flat_outcomes = {c: [True] * 20 + [False] * 80 for c in RecoveryClass}  # 20% everywhere
+
+    with pytest.raises(SanityGateFailure):
+        check_sanity_gate(flat_outcomes)

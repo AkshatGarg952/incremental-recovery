@@ -52,9 +52,7 @@ class ThrottledChatClient(ChatClient):
                 if exc.response.status_code != 429:
                     raise
                 if attempt >= self._max_retries:
-                    raise RateLimitExceeded(
-                        f"still rate-limited after {attempt} retries"
-                    ) from exc
+                    raise RateLimitExceeded(f"still rate-limited after {attempt} retries") from exc
                 self._sleep(self._base_backoff * (2**attempt))
                 attempt += 1
                 continue
