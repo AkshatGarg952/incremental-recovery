@@ -77,7 +77,9 @@ def generate_batch(
             decline_code = "ISSUER_DOWN"
         else:
             near_month_end = is_near_month_end(failed_at)
-            decline_code = sample_decline_code(method, rng, near_month_end=near_month_end)
+            decline_code = sample_decline_code(
+                method, rng, near_month_end=near_month_end, recovery_class=recovery_class
+            )
         decline_message_raw = generate_decline_message_raw(
             decline_code, rng, hint_class=recovery_class
         )

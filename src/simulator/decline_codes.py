@@ -79,11 +79,39 @@ for _method, _weights in _METHOD_CODE_WEIGHTS.items():
 # applied directly without renormalizing the rest.
 _MONTH_END_INSUFFICIENT_FUNDS_BOOST = 1.8
 
+# Real issuer decline codes are not perfectly reliable signals of the true
+# recovery class even when the taxonomy says they should be — this is the
+# label noise a classifier's rule prior has to tolerate. Kept small so
+# "clean" codes stay clean most of the time.
+_CODE_CLASS_NOISE_PROBABILITY = 0.05
 
-def sample_decline_code(method: str, rng: random.Random, near_month_end: bool = False) -> str:
+
+def sample_decline_code(
+    method: str,
+    rng: random.Random,
+    near_month_end: bool = False,
+    recovery_class: RecoveryClass | None = None,
+) -> str:
+    """Sample a decline code for `method`, consistent with `recovery_class`
+    where the taxonomy says a code implies a class (BUILD.md R1) — codes
+    mapped to `None` (`DO_NOT_HONOR`) stay eligible regardless of class,
+    since they are ambiguous by design. `recovery_class=None` (the caller
+    doesn't have or want a correlated code) samples the raw method
+    distribution, matching the original behaviour.
+    """
     weights = dict(_METHOD_CODE_WEIGHTS[method])
     if near_month_end and "INSUFFICIENT_FUNDS" in weights:
         weights["INSUFFICIENT_FUNDS"] *= _MONTH_END_INSUFFICIENT_FUNDS_BOOST
+
+    if recovery_class is not None and rng.random() >= _CODE_CLASS_NOISE_PROBABILITY:
+        matching = {
+            code: weight
+            for code, weight in weights.items()
+            if DECLINE_CODE_CLASS[code] is None or DECLINE_CODE_CLASS[code] == recovery_class
+        }
+        if matching:
+            weights = matching
+
     codes = list(weights.keys())
     probs = list(weights.values())
     return rng.choices(codes, weights=probs, k=1)[0]
