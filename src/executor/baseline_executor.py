@@ -6,12 +6,12 @@ idempotent write-before-act pattern as `AgentExecutor` (task 7.3/7.9) —
 retries are numbered by fixed position, so a replay writes nothing new.
 """
 
-from src.eval.schemas import LedgerEntry
 from src.executor.clock import SimulatedClock
 from src.executor.idempotency import idempotency_key
 from src.executor.ledger import Ledger
 from src.executor.outcomes import RECOVERY_HORIZON_HOURS, OutcomeResolver
 from src.executor.result import ExecutionResult
+from src.executor.schemas import LedgerEntry
 from src.simulator.schemas import PaymentFailure
 
 _SCHEDULE_HOURS = (24.0, 48.0, 72.0)

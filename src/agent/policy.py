@@ -141,6 +141,30 @@ def _render_failure(failure: PaymentFailure, recovery_class: RecoveryClass) -> s
     )
 
 
+def build_policy_request(
+    failure: PaymentFailure,
+    recovery_class: RecoveryClass,
+    model: str,
+    prompt_version: str = "v1",
+    prompt_dir: Path = _DEFAULT_PROMPT_DIR,
+) -> ChatRequest:
+    """The exact request `propose_policy` would send — exposed so callers
+    (e.g. the perturbation CLI's selective cache invalidation, BUILD.md
+    task 9.2) can compute the same cache key without duplicating
+    prompt-rendering logic.
+    """
+    prompt = _load_prompt(prompt_version, prompt_dir)
+    return ChatRequest(
+        model=model,
+        messages=[
+            ChatMessage(role="system", content=prompt),
+            ChatMessage(role="user", content=_render_failure(failure, recovery_class)),
+        ],
+        temperature=0.2,
+        response_format="json_object",
+    )
+
+
 def propose_policy(
     failure: PaymentFailure,
     recovery_class: RecoveryClass,
@@ -152,17 +176,7 @@ def propose_policy(
     prompt_dir: Path = _DEFAULT_PROMPT_DIR,
 ) -> PolicyProposalResult:
     economics_config = economics_config if economics_config is not None else load_economics_config()
-
-    prompt = _load_prompt(prompt_version, prompt_dir)
-    request = ChatRequest(
-        model=model,
-        messages=[
-            ChatMessage(role="system", content=prompt),
-            ChatMessage(role="user", content=_render_failure(failure, recovery_class)),
-        ],
-        temperature=0.2,
-        response_format="json_object",
-    )
+    request = build_policy_request(failure, recovery_class, model, prompt_version, prompt_dir)
 
     try:
         raw = parse_structured(client, request, ProposedPolicy, max_retries=2)

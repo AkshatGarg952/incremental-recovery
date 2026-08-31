@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from src.eval.schemas import Arm
+from src.executor.schemas import Arm
 
 
 @dataclass

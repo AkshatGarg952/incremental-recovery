@@ -91,6 +91,17 @@ class ResponseCache:
         )
         self._conn.commit()
 
+    def delete(self, role: str, provider: str, request: ChatRequest, prompt_version: str) -> bool:
+        """Remove one cached response, if present — selective invalidation
+        (BUILD.md task 9.2): only the entry for this exact request, nothing
+        else in the cache is touched. Returns whether a row was deleted.
+        """
+        payload_hash = _payload_sha256(request)
+        key = _cache_key(role, provider, request.model, prompt_version, payload_hash)
+        cursor = self._conn.execute("DELETE FROM response_cache WHERE cache_key = ?", (key,))
+        self._conn.commit()
+        return cursor.rowcount > 0
+
     def close(self) -> None:
         self._conn.close()
 

@@ -11,7 +11,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from src.eval.schemas import Arm, LedgerEntry
+from src.executor.schemas import Arm, LedgerEntry
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS ledger (

@@ -14,12 +14,12 @@ through the injected `OutcomeResolver`. See tests/test_no_label_leak.py.
 """
 
 from src.envelope.schemas import ProposedPolicy
-from src.eval.schemas import LedgerEntry
 from src.executor.clock import SimulatedClock
 from src.executor.idempotency import idempotency_key
 from src.executor.ledger import Ledger
 from src.executor.outcomes import RECOVERY_HORIZON_HOURS, OutcomeResolver
 from src.executor.result import ExecutionResult
+from src.executor.schemas import LedgerEntry
 from src.simulator.schemas import PaymentFailure
 
 

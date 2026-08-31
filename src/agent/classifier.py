@@ -108,15 +108,19 @@ def _render_failure(failure: PaymentFailure) -> str:
     )
 
 
-def adjudicate_with_llm(
+def build_classification_request(
     failure: PaymentFailure,
-    client: ChatClient,
     model: str,
     prompt_version: str = "v1",
     prompt_dir: Path = _DEFAULT_PROMPT_DIR,
-) -> ClassificationAdjudication:
+) -> ChatRequest:
+    """The exact request `adjudicate_with_llm` would send — exposed so
+    callers (e.g. the perturbation CLI's selective cache invalidation,
+    BUILD.md task 9.2) can compute the same cache key without duplicating
+    prompt-rendering logic.
+    """
     prompt = _load_prompt(prompt_version, prompt_dir)
-    request = ChatRequest(
+    return ChatRequest(
         model=model,
         messages=[
             ChatMessage(role="system", content=prompt),
@@ -125,6 +129,16 @@ def adjudicate_with_llm(
         temperature=0.0,
         response_format="json_object",
     )
+
+
+def adjudicate_with_llm(
+    failure: PaymentFailure,
+    client: ChatClient,
+    model: str,
+    prompt_version: str = "v1",
+    prompt_dir: Path = _DEFAULT_PROMPT_DIR,
+) -> ClassificationAdjudication:
+    request = build_classification_request(failure, model, prompt_version, prompt_dir)
     result = parse_structured(client, request, ClassificationAdjudication, max_retries=2)
     return cast(ClassificationAdjudication, result)
 

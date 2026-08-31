@@ -5,12 +5,12 @@ other two arms (a single `stage="outcome"` row instead of `execute` rows,
 since nothing was ever executed).
 """
 
-from src.eval.schemas import LedgerEntry
 from src.executor.clock import SimulatedClock
 from src.executor.idempotency import idempotency_key
 from src.executor.ledger import Ledger
 from src.executor.outcomes import RECOVERY_HORIZON_HOURS, OutcomeResolver
 from src.executor.result import ExecutionResult
+from src.executor.schemas import LedgerEntry
 from src.simulator.schemas import PaymentFailure
 
 
