@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 from src.agent.policy import load_economics_config
 from src.eval.harness import run_batch
-from src.eval.metering import MeteringChatClient
+from src.eval.metering import MeteringChatClient, RoutingMeteringChatClient
 from src.eval.report import build_batch_report, render_console, render_json
 from src.executor.clock import SimulatedClock
 from src.executor.ledger import Ledger
@@ -284,3 +284,40 @@ def test_build_batch_report_and_render_console_and_json():
     payload = json.loads(render_json(report))
     assert payload["total_failures"] == 6
     assert "lift" in payload
+
+
+def test_routing_metering_client_dispatches_by_model_and_meters_both():
+    failures, assignment, latent_outcomes = _build_batch()
+    classify_provider = FakeProvider([_CLASSIFY_RESPONSE])
+    policy_provider = FakeProvider(
+        [
+            _POLICY_RESPONSE.replace("PLACEHOLDER", "agent_1"),
+            _POLICY_RESPONSE.replace("PLACEHOLDER", "agent_2"),
+        ]
+    )
+    pricing = load_pricing()
+    accountant = TokenAccountant(pricing)
+    router = RoutingMeteringChatClient(
+        {_CLASSIFY_MODEL: classify_provider, _POLICY_MODEL: policy_provider}, accountant
+    )
+    ledger = Ledger(":memory:")
+    clock = SimulatedClock(_START)
+    economics = load_economics_config()
+
+    run_batch(
+        failures,
+        assignment,
+        latent_outcomes,
+        router,
+        _CLASSIFY_MODEL,
+        _POLICY_MODEL,
+        ledger,
+        clock,
+        seed=1,
+        economics_config=economics,
+    )
+
+    assert router.calls == 3
+    assert len(classify_provider.calls) == 1
+    assert len(policy_provider.calls) == 2
+    assert accountant.calls == 3

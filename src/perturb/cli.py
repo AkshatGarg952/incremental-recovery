@@ -11,6 +11,7 @@ unit-tested offline against FakeProvider; this module itself is not.
 from pathlib import Path
 
 import typer
+from dotenv import load_dotenv
 
 from src.agent.classifier import classify_failure
 from src.agent.policy import load_economics_config, propose_policy
@@ -20,6 +21,8 @@ from src.perturb.config import build_role_clients, load_providers_config
 from src.perturb.engine import apply_issuer_outage
 from src.perturb.replan import render_decision_diffs, replan_affected_failures
 from src.simulator.schemas import PaymentFailure
+
+load_dotenv()
 
 app = typer.Typer(no_args_is_help=True)
 

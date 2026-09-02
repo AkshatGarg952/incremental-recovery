@@ -1,8 +1,13 @@
-"""Request throttling and exponential backoff on HTTP 429, wrapping any `ChatClient`.
+"""Request throttling and exponential backoff on HTTP 429 and 5xx, wrapping
+any `ChatClient`.
 
 Free-tier rate limits are architectural, not an afterthought: a single N=3,000
 batch is ~1,860 calls, comfortably over a free tier's per-minute cap. See
-BUILD.md R9.
+BUILD.md R9. A live batch run also hit a plain `503 Service Unavailable`
+from Gemini — an ordinary, expected transient failure on a free tier, not a
+rate limit — which crashed the whole batch outright before this retried it
+too: 4xx (other than 429) is a client error that will fail identically on
+retry, so only 429 and 5xx are worth retrying.
 """
 
 import time
@@ -13,7 +18,8 @@ from src.llm.client import ChatClient, ChatRequest, ChatResponse
 
 
 class RateLimitExceeded(RuntimeError):
-    """Raised when a request is still rate-limited after exhausting all retries."""
+    """Raised when a request is still failing (429 or 5xx) after exhausting
+    all retries."""
 
 
 class ThrottledChatClient(ChatClient):
@@ -49,10 +55,13 @@ class ThrottledChatClient(ChatClient):
                 response = self._client.complete(request)
             except httpx.HTTPStatusError as exc:
                 self._last_call_at = self._now()
-                if exc.response.status_code != 429:
+                status_code = exc.response.status_code
+                if status_code != 429 and status_code < 500:
                     raise
                 if attempt >= self._max_retries:
-                    raise RateLimitExceeded(f"still rate-limited after {attempt} retries") from exc
+                    raise RateLimitExceeded(
+                        f"still failing (HTTP {status_code}) after {attempt} retries"
+                    ) from exc
                 self._sleep(self._base_backoff * (2**attempt))
                 attempt += 1
                 continue

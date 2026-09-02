@@ -29,3 +29,38 @@ class MeteringChatClient(ChatClient):
     @property
     def cache_hit_rate(self) -> float:
         return self.cache_hits / self.calls if self.calls else 0.0
+
+
+class RoutingMeteringChatClient(ChatClient):
+    """A `MeteringChatClient` that also routes by `request.model`.
+
+    `run_batch` takes exactly one `client` for both classify and propose
+    calls, differentiated only by the `model` string — but a real run uses
+    Gemini for classify and Groq for policy, two different underlying
+    clients. This dispatches to whichever client is registered for the
+    request's model, while still metering calls/cache-hits/tokens across
+    all of them into one shared accountant, so the batch report's
+    model-use section covers both roles.
+    """
+
+    def __init__(
+        self, clients_by_model: dict[str, ChatClient], accountant: TokenAccountant
+    ) -> None:
+        self._clients_by_model = clients_by_model
+        self.accountant = accountant
+        self.calls = 0
+        self.cache_hits = 0
+
+    def complete(self, request: ChatRequest) -> ChatResponse:
+        client = self._clients_by_model[request.model]
+        response = client.complete(request)
+        self.calls += 1
+        if getattr(client, "last_cache_hit", False):
+            self.cache_hits += 1
+        else:
+            self.accountant.record(response.usage, response.model)
+        return response
+
+    @property
+    def cache_hit_rate(self) -> float:
+        return self.cache_hits / self.calls if self.calls else 0.0

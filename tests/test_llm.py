@@ -122,24 +122,27 @@ def test_cache_persists_across_instances_against_same_db(tmp_path):
 
 
 class _FlakyClient:
-    """Raises HTTP 429 `fail_times` times, then delegates to `provider`."""
+    """Raises the given HTTP status `fail_times` times, then delegates to `provider`."""
 
-    def __init__(self, provider, fail_times: int) -> None:
+    def __init__(self, provider, fail_times: int, status_code: int = 429) -> None:
         self._provider = provider
         self._fail_times = fail_times
+        self._status_code = status_code
         self._calls = 0
 
     def complete(self, request):
         self._calls += 1
         if self._calls <= self._fail_times:
-            response = httpx.Response(429, request=httpx.Request("POST", "https://example.test"))
-            raise httpx.HTTPStatusError("rate limited", request=response.request, response=response)
+            response = httpx.Response(
+                self._status_code, request=httpx.Request("POST", "https://example.test")
+            )
+            raise httpx.HTTPStatusError("failing", request=response.request, response=response)
         return self._provider.complete(request)
 
 
 def test_throttle_retries_on_429_then_succeeds():
     provider = FakeProvider(['{"ok": true}'])
-    flaky = _FlakyClient(provider, fail_times=2)
+    flaky = _FlakyClient(provider, fail_times=2, status_code=429)
     sleeps: list[float] = []
     client = ThrottledChatClient(flaky, max_retries=5, sleep=sleeps.append, now=lambda: 0.0)
 
@@ -150,22 +153,46 @@ def test_throttle_retries_on_429_then_succeeds():
     assert sleeps == sorted(sleeps)  # exponential backoff is non-decreasing
 
 
+def test_throttle_retries_on_503_then_succeeds():
+    """A live batch run hit a plain 503 from Gemini — an ordinary transient
+    failure, not a rate limit — and it must be retried too, not crash the
+    whole batch outright."""
+    provider = FakeProvider(['{"ok": true}'])
+    flaky = _FlakyClient(provider, fail_times=2, status_code=503)
+    sleeps: list[float] = []
+    client = ThrottledChatClient(flaky, max_retries=5, sleep=sleeps.append, now=lambda: 0.0)
+
+    response = client.complete(_request())
+
+    assert response.content == '{"ok": true}'
+    assert len(sleeps) == 2
+
+
 def test_throttle_hard_fails_after_exhausting_retries():
     provider = FakeProvider(['{"ok": true}'])
-    flaky = _FlakyClient(provider, fail_times=10)
+    flaky = _FlakyClient(provider, fail_times=10, status_code=429)
     client = ThrottledChatClient(flaky, max_retries=3, sleep=lambda _: None, now=lambda: 0.0)
 
     with pytest.raises(RateLimitExceeded):
         client.complete(_request())
 
 
-def test_throttle_does_not_retry_non_429_errors():
-    class _AlwaysServerError:
+def test_throttle_hard_fails_after_exhausting_retries_on_persistent_503():
+    provider = FakeProvider(['{"ok": true}'])
+    flaky = _FlakyClient(provider, fail_times=10, status_code=503)
+    client = ThrottledChatClient(flaky, max_retries=3, sleep=lambda _: None, now=lambda: 0.0)
+
+    with pytest.raises(RateLimitExceeded):
+        client.complete(_request())
+
+
+def test_throttle_does_not_retry_genuine_client_errors():
+    class _AlwaysBadRequest:
         def complete(self, request):
-            response = httpx.Response(500, request=httpx.Request("POST", "https://example.test"))
+            response = httpx.Response(400, request=httpx.Request("POST", "https://example.test"))
             raise httpx.HTTPStatusError("boom", request=response.request, response=response)
 
-    client = ThrottledChatClient(_AlwaysServerError(), max_retries=3, sleep=lambda _: None)
+    client = ThrottledChatClient(_AlwaysBadRequest(), max_retries=3, sleep=lambda _: None)
 
     with pytest.raises(httpx.HTTPStatusError):
         client.complete(_request())

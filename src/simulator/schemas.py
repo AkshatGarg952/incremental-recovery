@@ -5,7 +5,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class RecoveryClass(StrEnum):
@@ -40,7 +40,19 @@ class FailureContext(BaseModel):
     contacts_last_7d: int
     subscription_mrr_paise: int | None
     invoice_due_date: date | None
-    consent_channels: set[Literal["sms", "email", "whatsapp", "in_app"]]
+    # A list, not a set: set iteration order depends on Python's per-process
+    # string hash randomization, so a `set` field serializes to JSON arrays
+    # in a different element order on every run — silently breaking the
+    # byte-for-byte reproducibility the committed seed is supposed to
+    # guarantee. Sorting on the way in makes serialization deterministic
+    # regardless of what iterable (set, frozenset, list) it's constructed
+    # from.
+    consent_channels: list[Literal["sms", "email", "whatsapp", "in_app"]]
+
+    @field_validator("consent_channels", mode="before")
+    @classmethod
+    def _sort_consent_channels(cls, value):
+        return sorted(set(value))
 
 
 class PaymentFailure(BaseModel):

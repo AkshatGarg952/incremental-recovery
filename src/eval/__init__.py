@@ -22,7 +22,7 @@ from src.eval.exception_list import ExceptionEntry
 from src.eval.gates import BaselineInvariantViolation, check_baseline_invariant
 from src.eval.harness import BatchRunResult, run_batch
 from src.eval.lift import LiftReport, compute_lift, newcombe_diff_ci, recovery_rate, wilson_ci
-from src.eval.metering import MeteringChatClient
+from src.eval.metering import MeteringChatClient, RoutingMeteringChatClient
 from src.eval.money import MoneyReport, compute_money_report
 from src.eval.outcome_resolver import LatentBackedResolver
 from src.eval.outcome_store import OutcomeRecord, OutcomeStore, build_outcome_record
@@ -57,6 +57,7 @@ __all__ = [
     "MoneyReport",
     "OutcomeRecord",
     "OutcomeStore",
+    "RoutingMeteringChatClient",
     "SpamRunResult",
     "amount_band",
     "assign_arms",
